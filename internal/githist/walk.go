@@ -31,6 +31,15 @@ func RepoRoot(dir string) (string, error) {
 	return strings.TrimSpace(out), nil
 }
 
+// RemoteURL returns the origin remote URL, or "" when there is none.
+func RemoteURL(dir string) string {
+	out, err := run(dir, "remote", "get-url", "origin")
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(out)
+}
+
 // Walk returns the commits that shaped the target region, newest first,
 // capped at maxHops.
 func Walk(dir string, t target.Target, maxHops int) ([]trail.Commit, error) {
