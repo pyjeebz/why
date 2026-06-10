@@ -7,6 +7,7 @@ import (
 	"golang.org/x/term"
 
 	"github.com/pyjeebz/why/internal/githist"
+	"github.com/pyjeebz/why/internal/github"
 	"github.com/pyjeebz/why/internal/render"
 	"github.com/pyjeebz/why/internal/target"
 	"github.com/pyjeebz/why/internal/trail"
@@ -44,6 +45,12 @@ var digCmd = &cobra.Command{
 		tr := trail.Trail{Target: t, Repo: root}
 		for _, c := range commits {
 			tr.Hops = append(tr.Hops, trail.Hop{Commit: c})
+		}
+
+		if owner, repo, ok := github.ParseRemote(githist.RemoteURL(cwd)); ok {
+			tr.Notice = github.NewEnricher(owner, repo).Enrich(tr.Hops)
+		} else {
+			tr.Notice = "trail is git-only: no GitHub origin remote"
 		}
 
 		color := term.IsTerminal(int(os.Stdout.Fd()))
