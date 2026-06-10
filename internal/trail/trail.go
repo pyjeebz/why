@@ -50,9 +50,12 @@ type Hop struct {
 	Issues []Issue `json:"issues,omitempty"`
 }
 
-// Trail is the full dig result, hops ordered newest first.
+// Trail is the full dig result, hops ordered newest first. Notice
+// describes how much context could be recovered when the trail is
+// degraded (git-only, partial enrichment).
 type Trail struct {
 	Target target.Target `json:"target"`
 	Repo   string        `json:"repo,omitempty"`
 	Hops   []Hop         `json:"hops"`
+	Notice string        `json:"notice,omitempty"`
 }
