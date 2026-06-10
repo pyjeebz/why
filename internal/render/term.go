@@ -41,6 +41,10 @@ func Term(w io.Writer, t trail.Trail, color bool) {
 		}
 		fmt.Fprintln(w)
 	}
+
+	if t.Notice != "" {
+		fmt.Fprintf(w, "%s· %s%s\n", d, t.Notice, r)
+	}
 }
 
 func firstLine(s string) string {
