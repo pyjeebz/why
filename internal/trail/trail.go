@@ -50,7 +50,9 @@ type Hop struct {
 	Issues []Issue `json:"issues,omitempty"`
 }
 
-// Trail is the full dig result, hops ordered newest first. Notice
+// Trail is the full dig result, hops ordered newest first. Repo is the
+// "owner/repo" slug when a GitHub origin remote was recognized — empty
+// otherwise — and is what renderers use to build commit links. Notice
 // describes how much context could be recovered when the trail is
 // degraded (git-only, partial enrichment).
 type Trail struct {
