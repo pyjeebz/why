@@ -10,31 +10,33 @@ import (
 )
 
 const (
-	bold  = "\033[1m"
-	dim   = "\033[2m"
-	cyan  = "\033[36m"
-	reset = "\033[0m"
+	bold   = "\033[1m"
+	dim    = "\033[2m"
+	cyan   = "\033[36m"
+	yellow = "\033[33m"
+	reset  = "\033[0m"
 )
 
 // Term writes the trail for a terminal, newest hop first. When color is
-// false (piped output), plain text is emitted.
+// false (piped output, NO_COLOR), plain text is emitted.
 func Term(w io.Writer, t trail.Trail, color bool) {
-	b, d, c, r := bold, dim, cyan, reset
+	b, d, c, y, r := bold, dim, cyan, yellow, reset
 	if !color {
-		b, d, c, r = "", "", "", ""
+		b, d, c, y, r = "", "", "", "", ""
 	}
 
-	fmt.Fprintf(w, "%swhy%s · trail for %s%s%s — %d hop(s), newest first\n\n", b, r, c, t.Target.String(), r, len(t.Hops))
+	fmt.Fprintf(w, "%swhy%s · trail for %s%s%s — %s, newest first\n\n", b, r, c, t.Target.String(), r, nhops(len(t.Hops)))
 
 	for _, h := range t.Hops {
-		fmt.Fprintf(w, "%s●%s %s%s%s  %s  %s\n", c, r, b, h.Commit.ShortSHA(), r, h.Commit.Date.Format("2006-01-02"), h.Commit.Author)
-		fmt.Fprintf(w, "  %s\n", h.Commit.Subject)
+		fmt.Fprintf(w, "%s●%s %s%s%s  %s%s  %s%s\n", c, r, y, h.Commit.ShortSHA(), r, d, h.Commit.Date.Format("2006-01-02"), h.Commit.Author, r)
+		fmt.Fprintf(w, "  %s%s%s\n", b, h.Commit.Subject, r)
 		if h.PR != nil {
-			fmt.Fprintf(w, "  %s└ PR #%d: %s%s\n", d, h.PR.Number, h.PR.Title, r)
-			fmt.Fprintf(w, "  %s  %s%s\n", d, h.PR.URL, r)
+			fmt.Fprintf(w, "  └ PR #%d: %s\n", h.PR.Number, h.PR.Title)
+			fmt.Fprintf(w, "    %s%s%s\n", d, h.PR.URL, r)
 		}
 		for _, is := range h.Issues {
-			fmt.Fprintf(w, "  %s└ issue #%d: %s — %s%s\n", d, is.Number, is.Title, is.URL, r)
+			fmt.Fprintf(w, "  └ closes #%d: %s\n", is.Number, is.Title)
+			fmt.Fprintf(w, "    %s%s%s\n", d, is.URL, r)
 		}
 		if body := firstLine(h.Commit.Body); body != "" {
 			fmt.Fprintf(w, "  %s%s%s\n", d, body, r)
