@@ -67,10 +67,27 @@ func Parse(arg string) (Target, error) {
 		t.Start, t.End = start, end
 	}
 
-	if info, err := os.Stat(t.Path); err != nil {
-		return Target{}, fmt.Errorf("cannot read %s: %w", t.Path, err)
-	} else if info.IsDir() {
-		return Target{}, fmt.Errorf("%s is a directory; dig targets a file", t.Path)
+	if err := Check(t); err != nil {
+		return Target{}, err
 	}
 	return t, nil
+}
+
+// Check verifies that a target — built programmatically rather than
+// parsed — points at a readable file with a sane line range.
+func Check(t Target) error {
+	if t.Path == "" {
+		return fmt.Errorf("empty target")
+	}
+	if t.Start < 0 || t.End < t.Start {
+		return fmt.Errorf("invalid range %d-%d", t.Start, t.End)
+	}
+	info, err := os.Stat(t.Path)
+	if err != nil {
+		return fmt.Errorf("cannot read %s: %w", t.Path, err)
+	}
+	if info.IsDir() {
+		return fmt.Errorf("%s is a directory; dig targets a file", t.Path)
+	}
+	return nil
 }
