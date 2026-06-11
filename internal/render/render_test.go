@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pyjeebz/why/internal/notes"
 	"github.com/pyjeebz/why/internal/target"
 	"github.com/pyjeebz/why/internal/trail"
 )
@@ -129,5 +130,57 @@ func TestTermColorOutput(t *testing.T) {
 	Term(&buf, sampleTrail(), true)
 	if !strings.Contains(buf.String(), yellow+"aaaa111"+reset) {
 		t.Fatalf("colored sha missing in:\n%s", buf.String())
+	}
+}
+
+func sampleNote() notes.Note {
+	return notes.Note{
+		ID:      "1",
+		Target:  target.Target{Path: "internal/retry.go", Start: 142, End: 142},
+		Text:    "Jitter avoids thundering herd on cold start.",
+		Author:  "pyjeebz",
+		Created: time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC),
+		Source:  "declared",
+	}
+}
+
+func TestTrailRendersNotes(t *testing.T) {
+	tr := sampleTrail()
+	n := sampleNote()
+	n.ReviewBy = "2026-01-01" // past: must surface as overdue
+	tr.Notes = []notes.Note{n}
+
+	var term bytes.Buffer
+	Term(&term, tr, false)
+	for _, want := range []string{
+		"✎ Jitter avoids thundering herd on cold start.",
+		"pyjeebz · declared · 2026-06-01 · ⚠ review overdue (2026-01-01)",
+	} {
+		if !strings.Contains(term.String(), want) {
+			t.Fatalf("term output missing %q in:\n%s", want, term.String())
+		}
+	}
+
+	var md bytes.Buffer
+	Markdown(&md, tr)
+	if !strings.Contains(md.String(), "> ✎ Jitter avoids thundering herd on cold start.") {
+		t.Fatalf("markdown note missing in:\n%s", md.String())
+	}
+}
+
+func TestNotesList(t *testing.T) {
+	n := sampleNote()
+	n.ReviewBy = "2099-01-01"
+
+	var buf bytes.Buffer
+	Notes(&buf, []notes.Note{n}, false)
+	for _, want := range []string{
+		"✎ internal/retry.go:142",
+		"  Jitter avoids thundering herd on cold start.",
+		"pyjeebz · declared · 2026-06-01 · review by 2099-01-01",
+	} {
+		if !strings.Contains(buf.String(), want) {
+			t.Fatalf("notes list missing %q in:\n%s", want, buf.String())
+		}
 	}
 }
