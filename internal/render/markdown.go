@@ -3,6 +3,7 @@ package render
 import (
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/pyjeebz/why/internal/trail"
 )
@@ -11,6 +12,10 @@ import (
 // pasting into a PR or issue comment: compact, linked, self-contained.
 func Markdown(w io.Writer, t trail.Trail) {
 	fmt.Fprintf(w, "### why · `%s` — %s, newest first\n\n", t.Target.String(), nhops(len(t.Hops)))
+
+	for _, n := range t.Notes {
+		fmt.Fprintf(w, "> ✎ %s\n> <sub>%s</sub>\n\n", n.Text, noteMeta(n, time.Now()))
+	}
 
 	for _, h := range t.Hops {
 		sha := "`" + h.Commit.ShortSHA() + "`"
