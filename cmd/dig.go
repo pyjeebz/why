@@ -6,11 +6,9 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/pyjeebz/why/internal/githist"
-	"github.com/pyjeebz/why/internal/github"
+	"github.com/pyjeebz/why/internal/dig"
 	"github.com/pyjeebz/why/internal/render"
 	"github.com/pyjeebz/why/internal/target"
-	"github.com/pyjeebz/why/internal/trail"
 )
 
 var (
@@ -36,25 +34,10 @@ var digCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if _, err := githist.RepoRoot(cwd); err != nil {
-			return err
-		}
 
-		commits, err := githist.Walk(cwd, t, digDepth)
+		tr, err := dig.Run(cwd, t, digDepth)
 		if err != nil {
 			return err
-		}
-
-		tr := trail.Trail{Target: t}
-		for _, c := range commits {
-			tr.Hops = append(tr.Hops, trail.Hop{Commit: c})
-		}
-
-		if owner, repo, ok := github.ParseRemote(githist.RemoteURL(cwd)); ok {
-			tr.Repo = owner + "/" + repo
-			tr.Notice = github.NewEnricher(owner, repo).Enrich(tr.Hops)
-		} else {
-			tr.Notice = "trail is git-only: no GitHub origin remote"
 		}
 
 		switch {
