@@ -51,6 +51,29 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func TestCheck(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "a.go")
+	if err := os.WriteFile(file, []byte("package a\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Check(Target{Path: file, Start: 4, End: 9}); err != nil {
+		t.Errorf("Check(valid): unexpected error: %v", err)
+	}
+	for _, bad := range []Target{
+		{},
+		{Path: file, Start: 9, End: 4},
+		{Path: file, Start: -1, End: 4},
+		{Path: filepath.Join(dir, "missing.go")},
+		{Path: dir},
+	} {
+		if err := Check(bad); err == nil {
+			t.Errorf("Check(%+v): expected error", bad)
+		}
+	}
+}
+
 func TestString(t *testing.T) {
 	tests := []struct {
 		in   Target
