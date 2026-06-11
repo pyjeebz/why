@@ -5,6 +5,7 @@ package trail
 import (
 	"time"
 
+	"github.com/pyjeebz/why/internal/notes"
 	"github.com/pyjeebz/why/internal/target"
 )
 
@@ -58,6 +59,7 @@ type Hop struct {
 type Trail struct {
 	Target target.Target `json:"target"`
 	Repo   string        `json:"repo,omitempty"`
+	Notes  []notes.Note  `json:"notes,omitempty"`
 	Hops   []Hop         `json:"hops"`
 	Notice string        `json:"notice,omitempty"`
 }
