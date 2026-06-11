@@ -13,7 +13,11 @@ import (
 	"github.com/pyjeebz/why/internal/trail"
 )
 
-var digDepth int
+var (
+	digDepth int
+	digJSON  bool
+	digShare bool
+)
 
 var digCmd = &cobra.Command{
 	Use:   "dig FILE[:LINE | :START-END]",
@@ -32,8 +36,7 @@ var digCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		root, err := githist.RepoRoot(cwd)
-		if err != nil {
+		if _, err := githist.RepoRoot(cwd); err != nil {
 			return err
 		}
 
@@ -42,24 +45,35 @@ var digCmd = &cobra.Command{
 			return err
 		}
 
-		tr := trail.Trail{Target: t, Repo: root}
+		tr := trail.Trail{Target: t}
 		for _, c := range commits {
 			tr.Hops = append(tr.Hops, trail.Hop{Commit: c})
 		}
 
 		if owner, repo, ok := github.ParseRemote(githist.RemoteURL(cwd)); ok {
+			tr.Repo = owner + "/" + repo
 			tr.Notice = github.NewEnricher(owner, repo).Enrich(tr.Hops)
 		} else {
 			tr.Notice = "trail is git-only: no GitHub origin remote"
 		}
 
-		color := term.IsTerminal(int(os.Stdout.Fd()))
-		render.Term(os.Stdout, tr, color)
+		switch {
+		case digJSON:
+			return render.JSON(os.Stdout, tr)
+		case digShare:
+			render.Markdown(os.Stdout, tr)
+		default:
+			color := term.IsTerminal(int(os.Stdout.Fd())) && os.Getenv("NO_COLOR") == ""
+			render.Term(os.Stdout, tr, color)
+		}
 		return nil
 	},
 }
 
 func init() {
 	digCmd.Flags().IntVar(&digDepth, "depth", 8, "maximum hops back through history")
+	digCmd.Flags().BoolVar(&digJSON, "json", false, "emit the trail as JSON")
+	digCmd.Flags().BoolVar(&digShare, "share", false, "emit the trail as markdown for a PR or issue comment")
+	digCmd.MarkFlagsMutuallyExclusive("json", "share")
 	rootCmd.AddCommand(digCmd)
 }
