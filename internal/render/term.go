@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/pyjeebz/why/internal/trail"
 )
@@ -26,6 +27,11 @@ func Term(w io.Writer, t trail.Trail, color bool) {
 	}
 
 	fmt.Fprintf(w, "%swhy%s · trail for %s%s%s — %s, newest first\n\n", b, r, c, t.Target.String(), r, nhops(len(t.Hops)))
+
+	for _, n := range t.Notes {
+		fmt.Fprintf(w, "%s✎%s %s\n", y, r, n.Text)
+		fmt.Fprintf(w, "  %s%s%s\n\n", d, noteMeta(n, time.Now()), r)
+	}
 
 	for _, h := range t.Hops {
 		fmt.Fprintf(w, "%s●%s %s%s%s  %s%s  %s%s\n", c, r, y, h.Commit.ShortSHA(), r, d, h.Commit.Date.Format("2006-01-02"), h.Commit.Author, r)
