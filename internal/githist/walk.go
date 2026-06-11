@@ -40,6 +40,24 @@ func RemoteURL(dir string) string {
 	return strings.TrimSpace(out)
 }
 
+// UserName returns the configured git author name, or "" when unset.
+func UserName(dir string) string {
+	out, err := run(dir, "config", "user.name")
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(out)
+}
+
+// Head returns the current HEAD commit SHA, or "" when unresolvable.
+func Head(dir string) string {
+	out, err := run(dir, "rev-parse", "HEAD")
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(out)
+}
+
 // Walk returns the commits that shaped the target region, newest first,
 // capped at maxHops.
 func Walk(dir string, t target.Target, maxHops int) ([]trail.Commit, error) {
