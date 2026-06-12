@@ -17,7 +17,8 @@ Read-only, zero setup. Works on any repo you have cloned.`,
 }
 
 // Execute runs the CLI and returns the process exit code.
-func Execute() int {
+func Execute(version string) int {
+	rootCmd.Version = version
 	if err := rootCmd.Execute(); err != nil {
 		return 1
 	}
