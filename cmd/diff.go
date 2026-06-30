@@ -67,17 +67,15 @@ request introduces — which is how the GitHub Action drives it in CI.`,
 		}
 
 		exclude := prCommits(cwd, base)
-		var trails []trail.Trail
-		for i, rg := range regions {
-			if i >= diffMax {
-				break
-			}
-			tr, err := dig.Run(cwd, rg, diffDepth)
-			if err != nil {
-				continue // a region we cannot read is one we simply skip
-			}
-			dropCommits(&tr, exclude)
-			trails = append(trails, tr)
+		trails, considered, skipped := collectTrails(cwd, regions, exclude, diffDepth, diffMax)
+		if skipped > 0 {
+			fmt.Fprintf(os.Stderr, "why · skipped %d of %d region(s) whose history could not be read\n", skipped, considered)
+		}
+		// All considered regions failing to dig is a read failure, not an
+		// absence of history — say so loudly rather than posting a comment
+		// that misreports it as "no recorded history".
+		if considered > 0 && len(trails) == 0 {
+			return fmt.Errorf("could not read history for any of the %d changed region(s)", considered)
 		}
 
 		var buf bytes.Buffer
@@ -134,6 +132,31 @@ func changedRegions(dir, rng string, ctx int) ([]target.Target, error) {
 		regions = append(regions, target.Target{Path: file, Start: start, End: start + count - 1})
 	}
 	return coalesce(expand(dir, regions, ctx)), nil
+}
+
+// runDig is a seam over dig.Run so the gather loop can be tested without a
+// repository.
+var runDig = dig.Run
+
+// collectTrails digs each region (up to max), excluding the change's own
+// commits, and reports how many regions were considered and how many had to
+// be skipped because their history could not be read. Separating the counts
+// lets the caller tell "no history" apart from "could not read it".
+func collectTrails(dir string, regions []target.Target, exclude map[string]bool, depth, max int) (trails []trail.Trail, considered, skipped int) {
+	for i, rg := range regions {
+		if i >= max {
+			break
+		}
+		considered++
+		tr, err := runDig(dir, rg, depth)
+		if err != nil {
+			skipped++
+			continue
+		}
+		dropCommits(&tr, exclude)
+		trails = append(trails, tr)
+	}
+	return trails, considered, skipped
 }
 
 // expand widens each region by ctx lines on both sides, clamped to the file
