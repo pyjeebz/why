@@ -1,0 +1,53 @@
+name: "why — PR context"
+description: "Comment the decision trail behind the code a pull request changes — the why before you review the what."
+branding:
+  icon: git-commit
+  color: purple
+
+inputs:
+  pr:
+    description: "Pull request number to comment on."
+    required: false
+    default: ${{ github.event.pull_request.number }}
+  base:
+    description: "Base ref to diff the pull request against."
+    required: false
+    default: ${{ github.event.pull_request.base.ref }}
+  depth:
+    description: "Maximum hops back through history per region."
+    required: false
+    default: "8"
+  github-token:
+    description: "Token gh uses to read history and post the comment. Needs pull-requests: write."
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: ${{ github.action_path }}/go.mod
+        cache-dependency-path: ${{ github.action_path }}/go.sum
+
+    - name: Build why
+      shell: bash
+      run: go build -C "${{ github.action_path }}" -o "${RUNNER_TEMP}/why" .
+
+    - name: Comment the trail
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        # why walks line history, so the base ref must be present and the
+        # checkout unshallow — use actions/checkout with fetch-depth: 0.
+        if ! git fetch --no-tags origin \
+            "+refs/heads/${{ inputs.base }}:refs/remotes/origin/${{ inputs.base }}"; then
+          echo "::error::why: could not fetch base ref '${{ inputs.base }}'. Check out with fetch-depth: 0 and confirm the base branch exists." >&2
+          exit 1
+        fi
+        "${RUNNER_TEMP}/why" diff "origin/${{ inputs.base }}" \
+          --comment \
+          --pr "${{ inputs.pr }}" \
+          --depth "${{ inputs.depth }}"

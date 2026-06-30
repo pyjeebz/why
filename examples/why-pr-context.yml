@@ -1,0 +1,20 @@
+# Drop this in .github/workflows/ to have why comment the decision trail
+# behind the code each pull request changes — the why, before the review.
+#
+# It needs the full history (fetch-depth: 0) so why can walk line history,
+# and pull-requests: write so it can post the comment.
+name: why
+on: pull_request
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  context:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pyjeebz/why@v1
