@@ -40,9 +40,13 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.github-token }}
       run: |
-        # why walks line history, so the checkout must be unshallow
-        # (actions/checkout with fetch-depth: 0). Make sure the base is present.
-        git fetch --no-tags origin "${{ inputs.base }}" || true
+        # why walks line history, so the base ref must be present and the
+        # checkout unshallow — use actions/checkout with fetch-depth: 0.
+        if ! git fetch --no-tags origin \
+            "+refs/heads/${{ inputs.base }}:refs/remotes/origin/${{ inputs.base }}"; then
+          echo "::error::why: could not fetch base ref '${{ inputs.base }}'. Check out with fetch-depth: 0 and confirm the base branch exists." >&2
+          exit 1
+        fi
         "${RUNNER_TEMP}/why" diff "origin/${{ inputs.base }}" \
           --comment \
           --pr "${{ inputs.pr }}" \
