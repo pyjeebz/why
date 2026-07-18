@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/pyjeebz/why/internal/rank"
 	"github.com/pyjeebz/why/internal/target"
 	"github.com/pyjeebz/why/internal/trail"
 )
@@ -115,10 +116,10 @@ func digest(regions []trail.Trail) (sections []section, thin, bare int) {
 			bare++
 			continue
 		}
-		sig := signature(t)
+		sig := rank.Signature(t)
 		s, ok := bySig[sig]
 		if !ok {
-			s = &section{trail: t, weight: weight(t)}
+			s = &section{trail: t, weight: rank.Weight(t)}
 			bySig[sig] = s
 			order = append(order, sig)
 		}
@@ -127,7 +128,7 @@ func digest(regions []trail.Trail) (sections []section, thin, bare int) {
 
 	for _, sig := range order {
 		s := bySig[sig]
-		if meaningful(s.trail) {
+		if rank.Meaningful(s.trail) {
 			sections = append(sections, *s)
 		} else {
 			thin += len(s.targets)
@@ -137,70 +138,6 @@ func digest(regions []trail.Trail) (sections []section, thin, bare int) {
 		return sections[i].weight > sections[j].weight
 	})
 	return sections, thin, bare
-}
-
-// signature keys a trail by the commits (and any note IDs) behind it, so
-// two regions shaped by the same history collapse and a noted region never
-// folds into an un-noted one.
-func signature(t trail.Trail) string {
-	var b strings.Builder
-	for _, h := range t.Hops {
-		b.WriteString(h.Commit.SHA)
-		b.WriteByte(',')
-	}
-	for _, n := range t.Notes {
-		b.WriteString("n:")
-		b.WriteString(n.ID)
-		b.WriteByte(',')
-	}
-	return b.String()
-}
-
-// weight scores how load-bearing a trail's history looks. Notes and linked
-// issues count most (a human deliberately recorded something), PRs and
-// incident-flavored commits next, depth last.
-func weight(t trail.Trail) int {
-	w := 3 * len(t.Notes)
-	for _, h := range t.Hops {
-		w++
-		if h.PR != nil {
-			w += 2
-		}
-		w += 2 * len(h.Issues)
-		if incident(h.Commit.Subject) {
-			w += 2
-		}
-	}
-	return w
-}
-
-// meaningful reports whether a trail is worth expanding rather than
-// tallying: it carries a note, more than one commit, or a linked PR/issue.
-func meaningful(t trail.Trail) bool {
-	if len(t.Notes) > 0 || len(t.Hops) >= 2 {
-		return true
-	}
-	for _, h := range t.Hops {
-		if h.PR != nil || len(h.Issues) > 0 {
-			return true
-		}
-	}
-	return false
-}
-
-var incidentWords = []string{
-	"revert", "rollback", "hotfix", "regression", "race", "deadlock",
-	"leak", "security", "vuln", "cve", "incident", "outage", "panic", "corrupt",
-}
-
-func incident(subject string) bool {
-	s := strings.ToLower(subject)
-	for _, word := range incidentWords {
-		if strings.Contains(s, word) {
-			return true
-		}
-	}
-	return false
 }
 
 // joinTargets renders a section's regions as code spans, grouping line
