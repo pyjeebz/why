@@ -58,8 +58,20 @@ type Hop struct {
 // degraded (git-only, partial enrichment).
 type Trail struct {
 	Target target.Target `json:"target"`
+	Answer *Answer       `json:"answer,omitempty"`
 	Repo   string        `json:"repo,omitempty"`
 	Notes  []notes.Note  `json:"notes,omitempty"`
 	Hops   []Hop         `json:"hops"`
 	Notice string        `json:"notice,omitempty"`
+}
+
+// Answer is the one-line why for a region, carried at the head of the trail
+// so a reader gets the reason before the receipts beneath it. Source records
+// where it came from — declared (a human's note), drafted (LLM synthesis of
+// the trail), or headline (a deterministic restatement of the strongest
+// artifact) — so the claim is never mistaken for more certainty than it has.
+type Answer struct {
+	Text   string `json:"text"`
+	Source string `json:"source"`
+	Author string `json:"author,omitempty"`
 }

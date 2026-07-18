@@ -41,6 +41,10 @@ why dig FILE[:LINE | :START-END]    # the decision trail behind a region
     --json                          #   machine-readable
     --depth N                       #   hops back through history (default 8)
 
+why diff [BASE]                     # the trail behind every region a change touches
+    --comment --pr N                #   post it as one PR comment (updates in place)
+    --dry-run                       #   print the comment instead of posting
+
 why note FILE:LINE -m "..."         # attach a personal note to a region
     --review-by YYYY-MM-DD          #   date after which the note needs review
 why log [FILE[:LINE | :START-END]]  # list your notes for this repository
@@ -50,6 +54,35 @@ why summarize FILE:LINE             # LLM-draft the why from the trail
 
 why mcp                             # MCP server so agents can dig too
 ```
+
+## On every pull request
+
+`why diff` reads a change and digs the decision trail behind every region
+it touches — the why behind the code you are about to change, before you
+change it. Run it against your working tree before you push, or add the
+Action and it comments the trail on each pull request automatically:
+
+```yaml
+# .github/workflows/why.yml
+name: why
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  context:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }   # why walks line history
+      - uses: pyjeebz/why@v1
+```
+
+It stays quiet by design: regions that share a trail collapse into one, what
+remains ranks by how load-bearing its history is, and it says nothing when
+there is nothing to say. When a change touches code whose reasoning was
+never recorded, it invites you to record it — in the commit or PR, where the
+next dig will find it.
 
 ## Your notes live with you, not the repo
 

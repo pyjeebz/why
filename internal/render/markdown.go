@@ -14,7 +14,14 @@ import (
 func Markdown(w io.Writer, t trail.Trail) {
 	fmt.Fprintf(w, "### why · `%s` — %s, newest first\n\n", t.Target.String(), nhops(len(t.Hops)))
 
+	if t.Answer != nil {
+		fmt.Fprintf(w, "**%s**  \n<sub>— %s</sub>\n\n", t.Answer.Text, provenance(t.Answer))
+	}
+
 	for _, n := range t.Notes {
+		if t.Answer != nil && n.Text == t.Answer.Text {
+			continue // already shown as the answer
+		}
 		noteQuote(w, n)
 	}
 	for _, h := range t.Hops {

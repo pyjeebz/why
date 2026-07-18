@@ -26,9 +26,21 @@ func Term(w io.Writer, t trail.Trail, color bool) {
 		b, d, c, y, r = "", "", "", "", ""
 	}
 
-	fmt.Fprintf(w, "%swhy%s · trail for %s%s%s — %s, newest first\n\n", b, r, c, t.Target.String(), r, nhops(len(t.Hops)))
+	if t.Answer != nil {
+		fmt.Fprintf(w, "%swhy%s · %s%s%s\n\n", b, r, c, t.Target.String(), r)
+		fmt.Fprintf(w, "  %s%s%s\n", b, t.Answer.Text, r)
+		fmt.Fprintf(w, "  %s— %s%s\n\n", d, provenance(t.Answer), r)
+		if len(t.Hops) > 0 {
+			fmt.Fprintf(w, "%sreceipts%s · %s, newest first\n\n", d, r, nhops(len(t.Hops)))
+		}
+	} else {
+		fmt.Fprintf(w, "%swhy%s · trail for %s%s%s — %s, newest first\n\n", b, r, c, t.Target.String(), r, nhops(len(t.Hops)))
+	}
 
 	for _, n := range t.Notes {
+		if t.Answer != nil && n.Text == t.Answer.Text {
+			continue // already shown as the answer
+		}
 		fmt.Fprintf(w, "%s✎%s %s\n", y, r, n.Text)
 		fmt.Fprintf(w, "  %s%s%s\n\n", d, noteMeta(n, time.Now()), r)
 	}
@@ -52,6 +64,28 @@ func Term(w io.Writer, t trail.Trail, color bool) {
 
 	if t.Notice != "" {
 		fmt.Fprintf(w, "%s· %s%s\n", d, t.Notice, r)
+	}
+}
+
+// provenance renders an Answer's source as a short human phrase for the line
+// beneath it, so a reader always knows whether the why was written by a
+// person, drafted from the trail, or restated from an artifact.
+func provenance(a *trail.Answer) string {
+	switch a.Source {
+	case "declared":
+		if a.Author != "" {
+			return "recorded by " + a.Author
+		}
+		return "a recorded note"
+	case "drafted":
+		if a.Author != "" {
+			return "drafted from the trail, saved by " + a.Author
+		}
+		return "drafted from the trail"
+	case "headline":
+		return "from the trail"
+	default:
+		return "no reason recorded"
 	}
 }
 
